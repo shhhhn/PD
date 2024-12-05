@@ -11,28 +11,35 @@ st.write(
     unsafe_allow_html=True,
 )
 
+# Function to preprocess the uploaded image
 def load_image(image_file):
     """Preprocess the uploaded image to make it compatible with the model."""
     img = Image.open(image_file)
-    img = img.resize((299, 299))  # Resize to (299, 299)
+    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions (adjust as needed)
     img = np.array(img)
     if img.shape[-1] == 4:  # Handle transparency
         img = img[..., :3]
-    img = img.reshape(1, 299, 299, 3)  # Match model input shape
+    img = img.flatten()  # Flatten into a 1D array
+    img = img[:10000]  # Ensure the array matches 10000 elements
     img = img.astype('float32')
     img /= 255.0  # Normalize pixel values
+    img = img.reshape(1, -1)  # Match model input shape (1, 10000)
     return img
 
+# Function to predict the class of the uploaded image
 def predict(image, model, labels):
     """Predict the class of the uploaded image."""
     img = load_image(image)
-    result = model.predict(img)
-    predicted_class = np.argmax(result, axis=1)
-    return labels[predicted_class[0]]
+    try:
+        result = model.predict(img)
+        predicted_class = np.argmax(result, axis=1)
+        return labels[predicted_class[0]]
+    except Exception as e:
+        raise ValueError(f"Error during prediction: {e}\nInput shape: {img.shape}")
 
 # Load the trained model
 try:
-    model = load_model('1mParamsModel (1).h5')
+    model = load_model('1mParamsModel (1).h5')  # Update with your model's filename
 except Exception as e:
     st.error(f"Error loading the model: {e}")
 
@@ -54,7 +61,7 @@ test_image = st.file_uploader("Upload an Image of the Object:", type=["jpg", "jp
 if test_image is not None:
     try:
         st.image(test_image, width=300, caption="Uploaded Image")
-        labels = load_labels("labels.txt")
+        labels = load_labels("labels.txt")  # Update with your labels filename
 
         if st.button("Classify"):
             st.write("Classifying the object...")
