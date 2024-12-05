@@ -40,6 +40,11 @@ def predict(image, model, labels, grayscale=False):
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)  # Get the index of the highest probability
         confidence = result[0][predicted_class[0]]  # Confidence score for the predicted class
+        
+        # Classify as 'not a scalpel' if confidence is below 50%
+        if confidence < 0.5:
+            return "Not a Scalpel", confidence
+        
         return labels[predicted_class[0]], confidence
     except Exception as e:
         raise ValueError(f"Error during prediction: {e}\nInput shape: {img.shape}")
