@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import cv2
 from PIL import Image
 from tensorflow.keras.models import load_model
 
@@ -11,32 +10,34 @@ try:
 except Exception as e:
     st.error(f"Error loading the model: {e}")
 
-# Load class labels (scalpel and non-scalpel)
+# Load class labels
 def load_labels(filename):
     try:
         with open(filename, 'r') as file:
             labels = file.readlines()
-        labels = [label.strip() for label in labels]  # Strip any extra whitespace
+        labels = [label.strip() for label in labels]
         return labels
     except FileNotFoundError:
         st.error(f"Labels file '{filename}' not found.")
         return []
 
 # Function to preprocess the image for the model
-def load_image(frame, grayscale=False):
-    if grayscale:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame = cv2.resize(frame, (100, 100))  # Resize to fit 100x100 dimensions
-    img = np.array(frame, dtype=np.float32) / 255.0  # Normalize pixel values
+def load_image(image_file, grayscale=False):
+    img = Image.open(image_file)
 
+    if grayscale:
+        img = img.convert('L')  # Convert to grayscale
+
+    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
+    img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
     img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
     img = np.expand_dims(img, axis=0)   # Add batch dimension (1, 100, 100, 1)
     
     return img
 
 # Function to predict the class of the image
-def predict(frame, model, labels, grayscale=False):
-    img = load_image(frame, grayscale)
+def predict(image, model, labels, grayscale=False):
+    img = load_image(image, grayscale)
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
@@ -57,45 +58,16 @@ st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classificati
 labels = load_labels("labels.txt")  # Update with your labels filename
 grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
 
-# Start video capture
-cap = cv2.VideoCapture(0)
+# Camera input
+test_image = st.camera_input("Capture Image")
 
-if cap.isOpened():
-    # Create a placeholder for the image
-    frame_placeholder = st.empty()
+if test_image is not None:
+    # Display the captured image
+    st.image(test_image, channels="RGB", caption="Captured Image")
 
-    # Button to take a snapshot
-    if st.button("Take Snapshot"):
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Failed to capture image from camera.")
-        else:
-            # Display the captured frame
-            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(image, channels="RGB", caption="Captured Snapshot")
-
-            # Predict the class of the captured frame
-            predicted_category, confidence = predict(frame, model, labels, grayscale_option)
-            
-            # Display the prediction
-            st.write(f"Predicted Category: {predicted_category}")
-            st.write(f"Confidence Score: {confidence:.2f}")
-
-    # Video feed display
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            st.error("Failed to capture image from camera.")
-            break
-
-        # Display the live feed
-        frame_placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB")
-
-        # Break the loop if the user clicks the stop button
-        if st.button("Stop"):
-            break
-
-    cap.release()  # Release the video capture
-
-else:
-    st.error("Camera is not available.")
+    # Predict the class of the captured image
+    predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
+    
+    # Show prediction results
+    st.write(f"Predicted Category: {predicted_category}")
+    st.write(f"Confidence Score: {confidence:.2f}")
