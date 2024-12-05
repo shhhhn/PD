@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageEnhance
 from tensorflow.keras.models import load_model
 
 # Streamlit page configuration
@@ -11,25 +11,36 @@ st.write(
     unsafe_allow_html=True,
 )
 
-# Function to preprocess the uploaded image
-def load_image(image_file):
+# Function to preprocess the uploaded image (including grayscale augmentation)
+def load_image(image_file, grayscale=True):
     """Preprocess the uploaded image to make it compatible with the model."""
     img = Image.open(image_file)
-    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
+    
+    # If grayscale augmentation is enabled, convert the image to grayscale
+    if grayscale:
+        img = img.convert('L')  # Convert to grayscale
+    
+    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions (adjust based on your model)
     img = np.array(img)
+    
+    # If the image is grayscale (L), convert it to 3 channels (RGB)
+    if len(img.shape) == 2:  # Grayscale image (100, 100)
+        img = np.stack([img] * 3, axis=-1)  # Convert grayscale to RGB by duplicating channels
+    
     if img.shape[-1] == 4:  # Handle transparency (RGBA images)
-        img = img[..., :3]  # Convert to RGB
-    img = img.astype('float32') / 255.0  # Normalize pixel values
-
-    # Flatten the image to (1, 10000) to match the model's expected input shape
-    img = img.flatten().reshape(1, -1)  # Flatten to 1D array (10000,) and reshape to (1, 10000)
-
+        img = img[..., :3]  # Convert to RGB if it has 4 channels (RGBA)
+    
+    img = img.astype('float32') / 255.0  # Normalize pixel values to [0, 1]
+    
+    # Expand dimensions to match model's expected input shape (1, 100, 100, 3)
+    img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, 3)
+    
     return img
 
 # Function to predict the class of the uploaded image
-def predict(image, model, labels):
+def predict(image, model, labels, grayscale=False):
     """Predict the class of the uploaded image."""
-    img = load_image(image)
+    img = load_image(image, grayscale)
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)  # Get the index of the highest probability
@@ -60,6 +71,8 @@ def load_labels(filename):
 st.title("Scalpel Object Classification")
 
 test_image = st.file_uploader("Upload an Image of the Object:", type=["jpg", "jpeg", "png"])
+grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)  # Option for grayscale
+
 if test_image is not None:
     try:
         st.image(test_image, width=300, caption="Uploaded Image")
@@ -68,7 +81,7 @@ if test_image is not None:
         if st.button("Classify"):
             st.write("Classifying the object...")
             if labels and model:
-                predicted_category, confidence = predict(test_image, model, labels)
+                predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
                 st.success(f"Predicted Category: {predicted_category}")
                 st.info(f"Confidence Score: {confidence:.2f}")
             else:
