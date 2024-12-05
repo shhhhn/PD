@@ -1,53 +1,8 @@
 import streamlit as st
 import numpy as np
+import cv2
 from PIL import Image
 from tensorflow.keras.models import load_model
-
-# Streamlit page configuration
-st.set_page_config(page_title="Scalpel Classification System", layout="wide")
-
-st.write(
-    "<div style='text-align: center; font-size: 50px;'>Welcome to the Scalpel Classification System</div>",
-    unsafe_allow_html=True,
-)
-
-# Function to preprocess the uploaded image (including grayscale augmentation)
-def load_image(image_file, grayscale=False):
-    """Preprocess the uploaded image to make it compatible with the model."""
-    img = Image.open(image_file)
-
-    # If grayscale augmentation is enabled, convert the image to grayscale
-    if grayscale:
-        img = img.convert('L')  # Convert to grayscale
-    
-    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
-    img = np.array(img)
-    
-    # Normalize pixel values to [0, 1]
-    img = img.astype('float32') / 255.0
-    
-    # Expand dimensions to match model's expected input shape (1, 100, 100, 1)
-    img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
-    img = np.expand_dims(img, axis=0)   # Add batch dimension (1, 100, 100, 1)
-    
-    return img
-
-# Function to predict the class of the uploaded image
-def predict(image, model, labels, grayscale=False):
-    """Predict the class of the uploaded image."""
-    img = load_image(image, grayscale)
-    try:
-        result = model.predict(img)
-        predicted_class = np.argmax(result, axis=1)  # Get the index of the highest probability
-        confidence = result[0][predicted_class[0]]  # Confidence score for the predicted class
-        
-        # Classify as 'not a scalpel' if confidence is below 50%
-        if confidence < 0.5:
-            return "Not a Scalpel", confidence
-        
-        return labels[predicted_class[0]], confidence
-    except Exception as e:
-        raise ValueError(f"Error during prediction: {e}\nInput shape: {img.shape}")
 
 # Load the trained model
 model = None
@@ -67,24 +22,56 @@ def load_labels(filename):
         st.error(f"Labels file '{filename}' not found.")
         return []
 
-# Page title and file upload functionality
-st.title("Scalpel Object Classification")
+# Function to preprocess the image for the model
+def load_image(frame, grayscale=False):
+    if grayscale:
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.resize(frame, (100, 100))  # Resize to fit 100x100 dimensions
+    img = np.array(frame, dtype=np.float32) / 255.0  # Normalize pixel values
 
-test_image = st.file_uploader("Upload an Image of the Object:", type=["jpg", "jpeg", "png"])
-grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)  # Option for grayscale
+    img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
+    img = np.expand_dims(img, axis=0)   # Add batch dimension (1, 100, 100, 1)
+    
+    return img
 
-if test_image is not None:
+# Function to predict the class of the image
+def predict(frame, model, labels, grayscale=False):
+    img = load_image(frame, grayscale)
     try:
-        st.image(test_image, width=300, caption="Uploaded Image")
-        labels = load_labels("labels.txt")  # Update with your labels filename
-
-        if st.button("Classify"):
-            st.write("Classifying the object...")
-            if labels and model:
-                predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
-                st.success(f"Predicted Category: {predicted_category}")
-                st.info(f"Confidence Score: {confidence:.2f}")
-            else:
-                st.error("Model or labels not properly loaded.")
+        result = model.predict(img)
+        predicted_class = np.argmax(result, axis=1)
+        confidence = result[0][predicted_class[0]]
+        
+        if confidence < 0.5:
+            return "Not a Scalpel", confidence
+        
+        return labels[predicted_class[0]], confidence
     except Exception as e:
-        st.error(f"Error processing the uploaded image: {e}")
+        raise ValueError(f"Error during prediction: {e}\nInput shape: {img.shape}")
+
+# Streamlit page configuration
+st.set_page_config(page_title="Live Scalpel Classification System", layout="wide")
+st.write("<div style='text-align: center; font-size: 50px;'>Live Scalpel Classification System</div>", unsafe_allow_html=True)
+
+# Load class labels
+labels = load_labels("labels.txt")  # Update with your labels filename
+grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
+
+# Start video capture
+video_feed = st.camera_input("Webcam Feed")
+
+if video_feed:
+    while True:
+        frame = cv2.imread(video_feed)  # Read the frame from the webcam
+        st.image(frame, channels="RGB")  # Display the frame
+
+        # Predict the class of the current frame
+        predicted_category, confidence = predict(frame, model, labels, grayscale_option)
+        
+        # Display the prediction
+        st.write(f"Predicted Category: {predicted_category}")
+        st.write(f"Confidence Score: {confidence:.2f}")
+
+        # Break the loop if the user stops the video feed
+        if st.button("Stop"):
+            break
