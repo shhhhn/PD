@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageEnhance
+from PIL import Image
 from tensorflow.keras.models import load_model
 
 # Streamlit page configuration
@@ -15,25 +15,20 @@ st.write(
 def load_image(image_file, grayscale=False):
     """Preprocess the uploaded image to make it compatible with the model."""
     img = Image.open(image_file)
-    
+
     # If grayscale augmentation is enabled, convert the image to grayscale
     if grayscale:
         img = img.convert('L')  # Convert to grayscale
     
-    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions (adjust based on your model)
+    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
     img = np.array(img)
     
-    # If the image is grayscale (L), convert it to 3 channels (RGB)
-    if len(img.shape) == 2:  # Grayscale image (100, 100)
-        img = np.stack([img] * 3, axis=-1)  # Convert grayscale to RGB by duplicating channels
+    # Normalize pixel values to [0, 1]
+    img = img.astype('float32') / 255.0
     
-    if img.shape[-1] == 4:  # Handle transparency (RGBA images)
-        img = img[..., :3]  # Convert to RGB if it has 4 channels (RGBA)
-    
-    img = img.astype('float32') / 255.0  # Normalize pixel values to [0, 1]
-    
-    # Expand dimensions to match model's expected input shape (1, 100, 100, 3)
-    img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, 3)
+    # Expand dimensions to match model's expected input shape (1, 100, 100, 1)
+    img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
+    img = np.expand_dims(img, axis=0)   # Add batch dimension (1, 100, 100, 1)
     
     return img
 
