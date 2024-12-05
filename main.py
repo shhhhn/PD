@@ -12,7 +12,7 @@ st.write(
 )
 
 # Function to preprocess the uploaded image (including grayscale augmentation)
-def load_image(image_file, grayscale=True):
+def load_image(image_file, grayscale=False):
     """Preprocess the uploaded image to make it compatible with the model."""
     img = Image.open(image_file)
     
