@@ -15,7 +15,7 @@ st.write(
 def load_image(image_file):
     """Preprocess the uploaded image to make it compatible with the model."""
     img = Image.open(image_file)
-    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions (adjust as needed)
+    img = img.resize((255, 255))  # Resize to fit 100x100 dimensions (adjust as needed)
     img = np.array(img)
     if img.shape[-1] == 4:  # Handle transparency
         img = img[..., :3]
