@@ -54,7 +54,7 @@ test_image = st.file_uploader("Upload an Image of the Object:", type=["jpg", "jp
 if test_image is not None:
     try:
         st.image(test_image, width=300, caption="Uploaded Image")
-        labels = load_labels("scalpel_labels.txt")
+        labels = load_labels("labels.txt")
 
         if st.button("Classify"):
             st.write("Classifying the object...")
