@@ -58,12 +58,20 @@ labels = load_labels("labels.txt")  # Update with your labels filename
 grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
 
 # Start video capture
-video_feed = st.camera_input("Webcam Feed")
+cap = cv2.VideoCapture(0)
 
-if video_feed:
+if cap.isOpened():
+    # Create a placeholder for the image
+    frame_placeholder = st.empty()
+
     while True:
-        frame = cv2.imread(video_feed)  # Read the frame from the webcam
-        st.image(frame, channels="RGB")  # Display the frame
+        ret, frame = cap.read()
+        if not ret:
+            st.error("Failed to capture image from camera.")
+            break
+
+        # Display the frame
+        frame_placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB")
 
         # Predict the class of the current frame
         predicted_category, confidence = predict(frame, model, labels, grayscale_option)
@@ -72,6 +80,11 @@ if video_feed:
         st.write(f"Predicted Category: {predicted_category}")
         st.write(f"Confidence Score: {confidence:.2f}")
 
-        # Break the loop if the user stops the video feed
+        # Stop the loop if the user clicks the stop button
         if st.button("Stop"):
             break
+
+    cap.release()  # Release the video capture
+
+else:
+    st.error("Camera is not available.")
