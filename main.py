@@ -17,7 +17,7 @@ st.write(
 @st.cache_resource
 def load_model():
     # Load your model from the path (replace with your model's path)
-    model = tf.saved_model.load("ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8/saved_model")  # Replace with your model path
+    model = tf.saved_model.load("1mParamsModel.h5")  # Replace with your model path
     return model
 
 # Function to preprocess the uploaded image
