@@ -51,7 +51,7 @@ def detect_objects(image, model, labels):
 
 # Load the trained object detection model
 try:
-    model = load_model('object_detection_model.h5')  # Update with your model's filename
+    model = load_model('1mParamsModel (1).h5')  # Update with your model's filename
 except Exception as e:
     st.error(f"Error loading the model: {e}")
 
