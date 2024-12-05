@@ -20,7 +20,10 @@ def load_image(image_file):
     if img.shape[-1] == 4:  # Handle transparency (RGBA images)
         img = img[..., :3]  # Convert to RGB
     img = img.astype('float32') / 255.0  # Normalize pixel values
-    img = img.reshape(1, 100, 100, 3)  # Match model input shape
+
+    # Flatten the image to (1, 10000) to match the model's expected input shape
+    img = img.flatten().reshape(1, -1)  # Flatten to 1D array (10000,) and reshape to (1, 10000)
+
     return img
 
 # Function to predict the class of the uploaded image
@@ -29,7 +32,7 @@ def predict(image, model, labels):
     img = load_image(image)
     try:
         result = model.predict(img)
-        predicted_class = np.argmax(result, axis=1)
+        predicted_class = np.argmax(result, axis=1)  # Get the index of the highest probability
         confidence = result[0][predicted_class[0]]  # Confidence score for the predicted class
         return labels[predicted_class[0]], confidence
     except Exception as e:
@@ -42,12 +45,12 @@ try:
 except Exception as e:
     st.error(f"Error loading the model: {e}")
 
-# Load class labels
+# Load class labels (scalpel and non-scalpel)
 def load_labels(filename):
     try:
         with open(filename, 'r') as file:
             labels = file.readlines()
-        labels = [label.strip() for label in labels]
+        labels = [label.strip() for label in labels]  # Strip any extra whitespace
         return labels
     except FileNotFoundError:
         st.error(f"Labels file '{filename}' not found.")
