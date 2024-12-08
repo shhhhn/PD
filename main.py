@@ -39,14 +39,13 @@ def load_image(image_file, grayscale=False):
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
 
-# Function to predict the class of the image
-def predict(image, model, labels, grayscale=False):
+def predict(image, model, labels, grayscale=True):  # Default grayscale=True
     img = load_image(image, grayscale)
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
         confidence = result[0][predicted_class[0]]
-        
+
         if confidence < 0.5:
             return "Not a Scalpel", confidence
         
@@ -60,7 +59,9 @@ st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classificati
 
 # Load class labels
 labels = load_labels("labels.txt")  # Update with your labels filename
-grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
+
+# Force grayscale transformation (required by the model)
+grayscale_option = True  # Model requires grayscale
 
 # Camera input
 test_image = st.camera_input("Capture Image")
