@@ -28,13 +28,18 @@ def load_image(image_file, grayscale=False):
 
         if grayscale:
             img = img.convert('L')  # Convert to grayscale
-            img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
         else:
             img = img.convert('RGB')  # Ensure 3 channels (RGB)
 
-        img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
+        img = img.resize((100, 100))  # Resize to 100x100 pixels
         img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
-        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
+        
+        if grayscale:
+            img = img.flatten()  # Flatten to 1D if grayscale
+        else:
+            img = img.reshape(-1)  # Flatten RGB image to 1D
+
+        img = np.expand_dims(img, axis=0)  # Add batch dimension
         return img
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
