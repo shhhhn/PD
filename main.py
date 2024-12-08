@@ -21,26 +21,30 @@ def load_labels(filename):
         st.error(f"Labels file '{filename}' not found.")
         return []
 
-def load_image(image_file, grayscale=False):
+def load_image(image_file):
     try:
+        # Open image from BytesIO
         img = Image.open(image_file)
 
-        # Convert to grayscale as model expects single channel
-        img = img.convert('L')  # Grayscale conversion (shape: 100x100)
+        # Convert to grayscale (single channel)
+        img = img.convert('L')  # 'L' mode is for grayscale
 
-        # Resize to match model's expected dimensions
+        # Resize to match model input
         img = img.resize((100, 100))
 
-        # Convert to numpy array, normalize, and flatten
+        # Normalize pixel values to [0, 1]
         img = np.array(img, dtype=np.float32) / 255.0
-        img = img.flatten()  # Flatten into a vector of shape (10000,)
-        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 10000)
+
+        # Expand dimensions to add channel and batch size
+        img = np.expand_dims(img, axis=-1)  # Shape: (100, 100, 1)
+        img = np.expand_dims(img, axis=0)   # Shape: (1, 100, 100, 1)
+
         return img
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
 
-def predict(image, model, labels, grayscale=True):  # Default grayscale=True
-    img = load_image(image, grayscale)
+def predict(image, model, labels):
+    img = load_image(image)
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
@@ -48,7 +52,7 @@ def predict(image, model, labels, grayscale=True):  # Default grayscale=True
 
         if confidence < 0.5:
             return "Not a Scalpel", confidence
-        
+
         return labels[predicted_class[0]], confidence
     except Exception as e:
         raise ValueError(f"Error during prediction: {e}\nInput shape: {img.shape}")
@@ -60,8 +64,9 @@ st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classificati
 # Load class labels
 labels = load_labels("labels.txt")  # Update with your labels filename
 
-# Force grayscale transformation (required by the model)
-grayscale_option = True  # Model requires grayscale
+# Streamlit UI
+st.set_page_config(page_title="Scalpel Classification System", layout="wide")
+st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classification System</div>", unsafe_allow_html=True)
 
 # Camera input
 test_image = st.camera_input("Capture Image")
@@ -69,11 +74,11 @@ test_image = st.camera_input("Capture Image")
 if test_image is not None:
     try:
         # Display the captured image
-        img = Image.open(test_image)  # Convert BytesIO to Image
-        st.image(img, caption="Captured Image", channels="RGB")
+        img_display = Image.open(test_image)
+        st.image(img_display, caption="Captured Image", channels="RGB")
 
         # Predict the class of the captured image
-        predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
+        predicted_category, confidence = predict(test_image, model, labels)
 
         # Show prediction results
         st.write(f"Predicted Category: {predicted_category}")
