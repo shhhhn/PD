@@ -22,22 +22,22 @@ def load_labels(filename):
         return []
 
 # Function to preprocess the image for the model
-def load_image(image_file):
-    try:
-        # Convert the BytesIO object to a PIL image
-        image_file.seek(0)  # Reset file pointer to the beginning
-        img = Image.open(image_file).convert('L')  # Convert to grayscale
-        img = img.resize((100, 100))  # Resize to 100x100 pixels
-        img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
-        img = img.flatten()  # Flatten to a 1D array (10000 elements)
-        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 10000)
-        return img
-    except Exception as e:
-        raise ValueError(f"Error loading image: {e}")
+def load_image(image_file, grayscale=False):
+    img = Image.open(image_file)
+
+    if grayscale:
+        img = img.convert('L')  # Convert to grayscale
+
+    img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
+    img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
+    img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
+    img = np.expand_dims(img, axis=0)   # Add batch dimension (1, 100, 100, 1)
+    
+    return img
 
 # Function to predict the class of the image
-def predict(image, model, labels):
-    img = load_image(image)  # Preprocess the image
+def predict(image, model, labels, grayscale=False):
+    img = load_image(image, grayscale)
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
@@ -56,21 +56,18 @@ st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classificati
 
 # Load class labels
 labels = load_labels("labels.txt")  # Update with your labels filename
+grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
 
 # Camera input
 test_image = st.camera_input("Capture Image")
 
 if test_image is not None:
-    try:
-        # Display the captured image
-        img = Image.open(test_image)  # Convert BytesIO to Image
-        st.image(img, caption="Captured Image", channels="RGB")
+    # Display the captured image
+    st.image(test_image, channels="RGB", caption="Captured Image")
 
-        # Predict the class of the captured image
-        predicted_category, confidence = predict(test_image, model, labels)
-
-        # Show prediction results
-        st.write(f"Predicted Category: {predicted_category}")
-        st.write(f"Confidence Score: {confidence:.2f}")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
+    # Predict the class of the captured image
+    predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
+    
+    # Show prediction results
+    st.write(f"Predicted Category: {predicted_category}")
+    st.write(f"Confidence Score: {confidence:.2f}")
