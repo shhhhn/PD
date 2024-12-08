@@ -43,7 +43,7 @@ def load_image(image_file, grayscale=True):
 
 # Function to predict the class of the image
 def predict(image, model, labels):
-    img = load_image(image, grayscale=True)  # Ensure grayscale input
+    img = load_image(image, grayscale=False)  # Ensure RGB input for this model
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
