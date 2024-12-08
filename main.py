@@ -3,13 +3,16 @@ import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
 
+# Set the page configuration - must be the first Streamlit command
+st.set_page_config(page_title="Scalpel Classification System", layout="wide")
+
 # Load the trained model
 model = None
 try:
     model = load_model('1mParamsModel.h5')  # Update with your model's filename
 except Exception as e:
     st.error(f"Error loading the model: {e}")
-
+    
 # Load class labels
 def load_labels(filename):
     try:
