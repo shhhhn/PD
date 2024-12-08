@@ -22,28 +22,22 @@ def load_labels(filename):
         return []
 
 # Function to preprocess the image for the model
-def load_image(image_file, grayscale=True):
+def load_image(image_file):
     try:
         # Convert the BytesIO object to a PIL image
         image_file.seek(0)  # Reset file pointer to the beginning
-        img = Image.open(image_file)
-
-        if grayscale:
-            img = img.convert('L')  # Convert to grayscale
-            img = np.expand_dims(img, axis=-1)  # Add channel dimension for grayscale (100, 100, 1)
-        else:
-            img = img.convert('RGB')  # Ensure RGB format
-
+        img = Image.open(image_file).convert('L')  # Convert to grayscale
         img = img.resize((100, 100))  # Resize to 100x100 pixels
         img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
-        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
+        img = img.flatten()  # Flatten to a 1D array (10000 elements)
+        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 10000)
         return img
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
 
 # Function to predict the class of the image
 def predict(image, model, labels):
-    img = load_image(image, grayscale=False)  # Ensure RGB input for this model
+    img = load_image(image)  # Preprocess the image
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
