@@ -24,14 +24,11 @@ def load_labels(filename):
 # Function to preprocess the image for the model
 def load_image(image_file, grayscale=True):
     try:
-        img = Image.open(image_file)
+        img = Image.open(image_file).convert("RGB")  # Ensure it's a valid image object
 
         if grayscale:
             img = img.convert('L')  # Convert to grayscale
             img = np.expand_dims(img, axis=-1)  # Add channel dimension for grayscale (100, 100, 1)
-        else:
-            img = img.convert('RGB')  # Ensure 3 channels (RGB)
-
         img = img.resize((100, 100))  # Resize to 100x100 pixels
         img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
         img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
