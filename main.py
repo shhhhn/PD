@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
-from io import BytesIO  # For handling the byte stream from camera input
 
 # Load the trained model
 model = None
@@ -26,12 +25,15 @@ def load_labels(filename):
 def load_image(image_file, grayscale=True):
     try:
         # Convert the BytesIO object to a PIL image
-        img = Image.open(BytesIO(image_file.read())).convert("RGB")
+        image_file.seek(0)  # Reset file pointer to the beginning
+        img = Image.open(image_file)
 
         if grayscale:
             img = img.convert('L')  # Convert to grayscale
             img = np.expand_dims(img, axis=-1)  # Add channel dimension for grayscale (100, 100, 1)
-        
+        else:
+            img = img.convert('RGB')  # Ensure RGB format
+
         img = img.resize((100, 100))  # Resize to 100x100 pixels
         img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
         img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
