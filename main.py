@@ -21,20 +21,20 @@ def load_labels(filename):
         st.error(f"Labels file '{filename}' not found.")
         return []
 
-# Function to preprocess the image for the model
 def load_image(image_file, grayscale=False):
     try:
         img = Image.open(image_file)
 
-        if grayscale:
-            img = img.convert('L')  # Convert to grayscale
-            img = np.expand_dims(img, axis=-1)  # Add channel dimension (100, 100, 1)
-        else:
-            img = img.convert('RGB')  # Ensure 3 channels (RGB)
+        # Convert to grayscale as model expects single channel
+        img = img.convert('L')  # Grayscale conversion (shape: 100x100)
 
-        img = img.resize((100, 100))  # Resize to fit 100x100 dimensions
-        img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
-        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
+        # Resize to match model's expected dimensions
+        img = img.resize((100, 100))
+
+        # Convert to numpy array, normalize, and flatten
+        img = np.array(img, dtype=np.float32) / 255.0
+        img = img.flatten()  # Flatten into a vector of shape (10000,)
+        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 10000)
         return img
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
