@@ -22,31 +22,26 @@ def load_labels(filename):
         return []
 
 # Function to preprocess the image for the model
-def load_image(image_file, grayscale=False):
+def load_image(image_file, grayscale=True):
     try:
         img = Image.open(image_file)
 
         if grayscale:
             img = img.convert('L')  # Convert to grayscale
+            img = np.expand_dims(img, axis=-1)  # Add channel dimension for grayscale (100, 100, 1)
         else:
             img = img.convert('RGB')  # Ensure 3 channels (RGB)
 
         img = img.resize((100, 100))  # Resize to 100x100 pixels
         img = np.array(img, dtype=np.float32) / 255.0  # Normalize pixel values
-        
-        if grayscale:
-            img = img.flatten()  # Flatten to 1D if grayscale
-        else:
-            img = img.reshape(-1)  # Flatten RGB image to 1D
-
-        img = np.expand_dims(img, axis=0)  # Add batch dimension
+        img = np.expand_dims(img, axis=0)  # Add batch dimension (1, 100, 100, channels)
         return img
     except Exception as e:
         raise ValueError(f"Error loading image: {e}")
 
 # Function to predict the class of the image
-def predict(image, model, labels, grayscale=False):
-    img = load_image(image, grayscale)
+def predict(image, model, labels):
+    img = load_image(image, grayscale=True)  # Ensure grayscale input
     try:
         result = model.predict(img)
         predicted_class = np.argmax(result, axis=1)
@@ -65,7 +60,6 @@ st.write("<div style='text-align: center; font-size: 50px;'>Scalpel Classificati
 
 # Load class labels
 labels = load_labels("labels.txt")  # Update with your labels filename
-grayscale_option = st.checkbox("Apply Grayscale Transformation", value=False)
 
 # Camera input
 test_image = st.camera_input("Capture Image")
@@ -77,7 +71,7 @@ if test_image is not None:
         st.image(img, caption="Captured Image", channels="RGB")
 
         # Predict the class of the captured image
-        predicted_category, confidence = predict(test_image, model, labels, grayscale_option)
+        predicted_category, confidence = predict(test_image, model, labels)
 
         # Show prediction results
         st.write(f"Predicted Category: {predicted_category}")
